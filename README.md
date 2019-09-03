@@ -98,7 +98,7 @@ Let's break this program down line by line.
 ```rust
 extern crate nom;
 ```
-In the [previous section](#chap2) we added nom as a dependency in `Cargo.toml`.  This additional line in `main.js` tells your program about the nom crate, enabling you to access it through `nom::`.  You cap optionally add additional lines like `use nom::IResult;` to cut down on typing, but I have deliberately used the verbose notation in this tutorial so that you can clearly see the module hierarchy.
+In the [previous section](#chap2) we added nom as a dependency in `Cargo.toml`.  This additional line in `main.rs` tells your program about the nom crate, enabling you to access it through `nom::`.  You can optionally add lines like `use nom::IResult;` to cut down on typing, but I have deliberately used the verbose notation in this tutorial so that you can clearly see the module hierarchy.
 
 ### Creating a Custom Parser
 
@@ -107,7 +107,7 @@ fn hello_parser(i: &str) -> nom::IResult<&str, &str> {
 	nom::bytes::complete::tag("hello")(i)
 }
 ```
-This creates a function called `hello_parser` that takes a `&str` (borrowed string slice) as its input and returns a type `nom::IResult<&str, &str>`, which we'll talk more about later.  Within the body of the function we create a nom tag parser.  A tag parser recognizes a literal string, or "tag", of text.  The tag parser `tag("hello")` is a function object will recognize the text "hello".  We then call the tag parser with the input string as its argument and return the result.  (Remember, in Rust you can omit the `return` keyword from the last line in a function.)
+This creates a function called `hello_parser` that takes a `&str` (borrowed string slice) as its input and returns a type `nom::IResult<&str, &str>`, which we'll talk more about later.  Within the body of the function we create a nom tag parser.  A tag parser recognizes a literal string, or "tag", of text.  The tag parser `tag("hello")` is a function object that recognizes the text "hello".  We then call the tag parser with the input string as its argument and return the result.  (Remember, in Rust you can omit the `return` keyword from the last line in a function.)
 
 ### Invoking the Parser
 
@@ -199,7 +199,7 @@ impl std::fmt::Debug for ParseError {
 }
 impl std::error::Error for ParseError { }
 ```
-There's a lot to do here!  The problem we are trying to solve is that `nom::Err::Error` unforunately does not implement `std::error::Error`, which means that propagating nom parser errors up the call stack is going to be complicated.  We will solve this by writing our own error type `ParseError` that _does_ implement `std::error::Error` and returning a `ParseError` whenever a nom parser error occurs.  The [Rust language documentation for the Error trait](https://doc.rust-lang.org/std/error/trait.Error.html) explains how to do this.
+There's a lot to do here!  The problem we are trying to solve is that `nom::Err::Error` unfortunately does not implement `std::error::Error`, which means that propagating nom parser errors up the call stack is going to be complicated.  We will solve this by writing our own error type `ParseError` that _does_ implement `std::error::Error` and returning a `ParseError` whenever a nom parser error occurs.  The [Rust language documentation for the Error trait](https://doc.rust-lang.org/std/error/trait.Error.html) explains how to do this.
 
 ```rust
 #[derive(Default)]
@@ -286,7 +286,7 @@ One of the parsers we write later on will need to use the `Mount` struct we defi
 
 We also model another good programming practice, unit testing.  Within the `parsers` module we've defined another submodule called `tests` (you could call it anything you want).  The line `#cfg[(test)]` tells Cargo that the `tests` module should only be compiled when running `cargo test`.  The actual test takes place inside the function `fn test_not_whitespace()` (which again can have any name, but let's not get too creative).  The `#[test]` just before the function name tells Cargo to run that function as a unit test when invoked with `cargo test`.
 
-Here panics are OK.  A unit test succeeds if it doesn't panic.  The macro `assert_eq!()` panics if its two arguments aren't true.  We test out a few assertions in which the `not_whitespace` parser should succeed and make sure that the whitespace and following characters in each input sequence are not consumed.  We also test out one case where the parser should fail.  Even though our program isn't finished yet, you can already compile it and make sure the `not_whitespace` parser works as expected:
+Here panics are OK.  A unit test succeeds if it doesn't panic.  The macro `assert_eq!()` panics if its two arguments aren't equal.  We test out a few assertions in which the `not_whitespace` parser should succeed and make sure that the whitespace and following characters in each input sequence are not consumed.  We also test out one case where the parser should fail.  Even though our program isn't finished yet, you can already compile it and make sure the `not_whitespace` parser works as expected:
 
 ```console
 $ cargo test
