@@ -40,7 +40,7 @@ Each mount is described on a separate line.  Within each line, the properties of
 
 1. Device (e.g. sysfs, /dev/sda1)
 2. Mount point (e.g. /sys, /mnt/disk)
-3. Filesystem tye (e.g. sysfs, ext4)
+3. Filesystem type (e.g. sysfs, ext4)
 4. Mount options, a comma-delimited string of options (e.g. rw, ro)
 5. Each line ends in `0 0` to mimic the format of `/etc/fstab`.  This 5th column `0 0` is just decoration -- it is the same for every line and therefore does not contain any useful information.
 
