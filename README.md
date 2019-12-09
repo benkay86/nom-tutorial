@@ -29,7 +29,7 @@ sysfs on /sys type sysfs (rw,seclabel,nosuid,nodev,noexec,relatime)
 proc on /proc type proc (rw,nosuid,nodev,noexec,relatime)
 ...output trimmed for length...
 ```
-Replicating the entire function of the `mount` command in Rust is beyond the scope of this tutorial, but we can replicate the above output with the help of nom.  The Linux kernel stores information about all the currently mounted filesystems in ``/proc/mounts`.
+Replicating the entire function of the `mount` command in Rust is beyond the scope of this tutorial, but we can replicate the above output with the help of nom.  The Linux kernel stores information about all the currently mounted filesystems in `/proc/mounts`.
 
 ```console
 $ cat /proc/mounts
@@ -40,7 +40,7 @@ Each mount is described on a separate line.  Within each line, the properties of
 
 1. Device (e.g. sysfs, /dev/sda1)
 2. Mount point (e.g. /sys, /mnt/disk)
-3. Filesystem tye (e.g. sysfs, ext4)
+3. Filesystem type (e.g. sysfs, ext4)
 4. Mount options, a comma-delimited string of options (e.g. rw, ro)
 5. Each line ends in `0 0` to mimic the format of `/etc/fstab`.  This 5th column `0 0` is just decoration -- it is the same for every line and therefore does not contain any useful information.
 
@@ -158,7 +158,7 @@ This section deals with setting up the non-nom (isn't that fun to read out load?
 
 ### Encapsulation
 
-It is simple, and tempting, to write your whole program in one file.  However, it is good practice to split your program into a library (or crate) and binary to make the underlying logic easy to reuse.  We'll take the high road in this tutorial and create an empty file called `lib.rs` in the same directory as `main.rs`.  Cargo automatically knows to build `lib.rs` into a library/crate with the name "nom-example" we specified in `Cargo.toml` using the line `name = "nom-example"`.  Then let's make a new `main.rs` that uses our `nom-example crate instead of using nom directly.
+It is simple, and tempting, to write your whole program in one file.  However, it is good practice to split your program into a library (or crate) and binary to make the underlying logic easy to reuse.  We'll take the high road in this tutorial and create an empty file called `lib.rs` in the same directory as `main.rs`.  Cargo automatically knows to build `lib.rs` into a library/crate with the name "nom-example" we specified in `Cargo.toml` using the line `name = "nom-example"`.  Then let's make a new `main.rs` that uses our `nom-example` crate instead of using nom directly.
 
 ```rust.rs
 extern crate nom_example;
