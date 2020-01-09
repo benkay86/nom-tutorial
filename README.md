@@ -115,7 +115,7 @@ This creates a function called `hello_parser` that takes a `&str` (borrowed stri
 println!("{:?}", hello_parser("hello world"));
 // Ok((" world", "hello"))
 ```
-Now let's go to `main()` and see what the parser does.  Recall that `println!("{:?}", x)` prints out the debugging version of `x`, giving us an easy way to inspect the content of Rust variables.  Here we call `hello_parser()` with several different test strings and print out the returned `nom::IResult<&str, &str>`.  As you can see, it turns out an `IResult` is a Rust `Result`, which can contain an `Ok` or `Err`.  When the parser succeeds it returns a tuple of its generic type paremeters, in this case `&str`
+Now let's go to `main()` and see what the parser does.  Recall that `println!("{:?}", x)` prints out the debugging version of `x`, giving us an easy way to inspect the content of Rust variables.  Here we call `hello_parser()` with several different test strings and print out the returned `nom::IResult<&str, &str>`.  As you can see, it turns out an `IResult` is a Rust `Result`, which can contain an `Ok` or `Err`.  When the parser succeeds it returns a tuple of its generic type parameters, in this case `&str`
 .  The second element of the tuple is the "output" of the parser, which is often the string matched or "consumed by" the parser, "hello".  The first element of the tuple is the remaining input, " world".
 
 ```rust
