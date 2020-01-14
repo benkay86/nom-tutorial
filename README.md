@@ -388,7 +388,7 @@ nom::bytes::complete::escaped_transform(nom::bytes::complete::is_not("\\"), '\\'
 ```
 `escaped_transform` takes two parsers and a `char` as arguments:
 
-1. A sequence of bytes that is not escaped.  In our case we can use the familiar `bytes::compelte::is_not` parser to match one or more bytes that is not the escape character.
+1. A sequence of bytes that is not escaped.  In our case we can use the familiar `bytes::complete::is_not` parser to match one or more bytes that is not the escape character.
 2. The escape character itself, `\`.
 3. A parser that transforms the escaped sequence (minus the preceding `\`) into its final form.
 
