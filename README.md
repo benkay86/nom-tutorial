@@ -526,6 +526,37 @@ Wow, that's a lot of code!  Taking a birds-eye view, notice that `parse_line` re
 
 Finally, the `all_consuming` parser fails if there is any input left over.  This will cause `parse_line` to (conservatively) return an error if there is something at the end of the line we were not expecting.
 
+### Alternative Final Parser
+
+I've received what I think is valid feedback that the final parser above is too complicated to look at.  What follows is an alternative version of the final parser that accomplishes the same objective with fewer, possibly more readable (depending on your sensibilities) lines of code.  It makes heavy use of the `?` operator to break the `tuple` parser into individual statements.  The `?` operator ends the function early, returning an error, if a parser fails.  The remaining input from each parser is used as the input of the next parser.  Pertinent variables are stored and later used to construct the `Mount` object at the end of the function.  Superfluous variables are discarded by assigning to `_`.
+
+```rust
+pub fn parse_line_alternate(i: &str) -> nom::IResult<&str, Mount> {
+	let (i, device) = nom::combinator::map_parser(not_whitespace, transform_escaped)(i)?; // device
+	let (i, _) = nom::character::complete::space1(i)?;
+	let (i, mount_point) = nom::combinator::map_parser(not_whitespace, transform_escaped)(i)?; // mount_point
+	let (i, _) = nom::character::complete::space1(i)?;
+	let (i, file_system_type) = not_whitespace(i)?; // file_system_type
+	let (i, _) = nom::character::complete::space1(i)?;
+	let (i, options) = mount_opts(i)?; // options
+	let (i, _) = nom::combinator::all_consuming(nom::sequence::tuple((
+		nom::character::complete::space1,
+		nom::character::complete::char('0'),
+		nom::character::complete::space1,
+		nom::character::complete::char('0'),
+		nom::character::complete::space0
+	)))(i)?;
+	Ok((i, Mount {
+		device: device,
+		mount_point: mount_point,
+		file_system_type: file_system_type.to_string(),
+		options:options
+	}))
+}
+```
+
+Try it out for yourself by commenting-out the original function and renaming `parse_line_alternate` to `parse_line`.  Use whichever style you like better in your own code.
+
 ### Testing It Out
 
 You can already verify the program works with `cargo test` but let's make things a little nicer so that calling our binary will display a line-by-line list of mounts.  We'll define a function `nom_tutorial::mounts()` to print them out and then call it from `main.rs`.

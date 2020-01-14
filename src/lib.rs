@@ -258,6 +258,40 @@ pub(self) mod parsers {
 		}
 	}
 	
+	// Alternative version of `parse_line()` above that performs the same
+	// function using a different style.  Rather than parsing the entire line at
+	// once with one big `nom::sequence::tuple` we break the parsing up into
+	// multiple separate statements.  Each statement runs a parser that returns
+	// an `Ok(remaining_input, value)`.  At the end of each statement we have
+	// the `?` operator, which unwraps the result and returns early with an
+	// error if parsing failed.  The remaining input from each parser is used as
+	// the input of each subsequent parser.  Values are assigned to temporary
+	// variables that are used to construct a `Mount` object at the end of the
+	// function.  Values that are not needed are discarded by assigning to `_`. 
+	#[allow(unused)]
+	pub fn parse_line_alternate(i: &str) -> nom::IResult<&str, Mount> {
+		let (i, device) = nom::combinator::map_parser(not_whitespace, transform_escaped)(i)?; // device
+		let (i, _) = nom::character::complete::space1(i)?;
+		let (i, mount_point) = nom::combinator::map_parser(not_whitespace, transform_escaped)(i)?; // mount_point
+		let (i, _) = nom::character::complete::space1(i)?;
+		let (i, file_system_type) = not_whitespace(i)?; // file_system_type
+		let (i, _) = nom::character::complete::space1(i)?;
+		let (i, options) = mount_opts(i)?; // options
+		let (i, _) = nom::combinator::all_consuming(nom::sequence::tuple((
+			nom::character::complete::space1,
+			nom::character::complete::char('0'),
+			nom::character::complete::space1,
+			nom::character::complete::char('0'),
+			nom::character::complete::space0
+		)))(i)?;
+		Ok((i, Mount {
+			device: device,
+			mount_point: mount_point,
+			file_system_type: file_system_type.to_string(),
+			options:options
+		}))
+	}
+	
 	#[cfg(test)]
 	mod tests {
 		use super::*;
@@ -308,6 +342,22 @@ pub(self) mod parsers {
 				options: vec!["options".to_string(), "a".to_string(), "b=c".to_string(), "d e".to_string()]
 			};
 			let (_, mount2) = parse_line("device mount_point file_system_type options,a,b=c,d\\040e 0 0").unwrap();
+			assert_eq!(mount1.device, mount2.device);
+			assert_eq!(mount1.mount_point, mount2.mount_point);
+			assert_eq!(mount1.file_system_type, mount2.file_system_type);
+			assert_eq!(mount1.options, mount2.options);
+		}
+		
+		// Parses a line from /proc/mounts
+		#[test]
+		fn test_parse_line_alternate() {
+			let mount1 = Mount{
+				device: "device".to_string(),
+				mount_point: "mount_point".to_string(),
+				file_system_type: "file_system_type".to_string(),
+				options: vec!["options".to_string(), "a".to_string(), "b=c".to_string(), "d e".to_string()]
+			};
+			let (_, mount2) = parse_line_alternate("device mount_point file_system_type options,a,b=c,d\\040e 0 0").unwrap();
 			assert_eq!(mount1.device, mount2.device);
 			assert_eq!(mount1.mount_point, mount2.mount_point);
 			assert_eq!(mount1.file_system_type, mount2.file_system_type);
