@@ -4,6 +4,13 @@
 use std::io::BufRead;
 use std::io::Read;
 
+/// Type-erased errors.
+pub type BoxError = std::boxed::Box<dyn
+	std::error::Error   // must implement Error to satisfy ?
+	+ std::marker::Send // needed for threads
+	+ std::marker::Sync // needed for threads
+>;
+
 /// Describes a mounted filesystem, see `man 8 mount` for more details.
 #[derive(Clone, Default, Debug)]
 pub struct Mount {
@@ -61,7 +68,7 @@ impl Mounts {
 }
 
 impl IntoIterator for Mounts {
-	type Item = std::result::Result<Mount, std::boxed::Box<dyn std::error::Error>>;
+	type Item = std::result::Result<Mount, BoxError>;
 	type IntoIter = MountsIntoIterator;
 	
 	/// Consuming iterator, used similarly to mutable iterator.  See [Mounts::iter_mut()] for example.
@@ -71,7 +78,7 @@ impl IntoIterator for Mounts {
 }
 
 impl<'a> IntoIterator for &'a mut Mounts {
-	type Item = std::result::Result<Mount, std::boxed::Box<dyn std::error::Error>>;
+	type Item = std::result::Result<Mount, BoxError>;
 	type IntoIter = MountsIteratorMut<'a>;
 	
 	/// Mutable iterator, see [Mounts::iter_mut()].
@@ -86,21 +93,21 @@ pub struct MountsIntoIterator {
 }
 
 impl std::iter::Iterator for MountsIntoIterator {
-	type Item = std::result::Result<Mount, std::boxed::Box<dyn std::error::Error>>;
+	type Item = std::result::Result<Mount, BoxError>;
 	
-	/// Returns the next line in `/proc/mounts` as a [Mount].  If there is a problem reading or parsing `/proc/mounts` returns an error.  See [Mounts::iter_mut()] for an analagous example using a mutable iterator.
+	/// Returns the next line in `/proc/mounts` as a [Mount].  If there is a problem reading or parsing `/proc/mounts` returns an error.  In the case of a parsing error we use [nom::Err::to_owned()] to allow the returned error to outlive `line`.  See [Mounts::iter_mut()] for an analagous example using a mutable iterator.
 	fn next(&mut self) -> std::option::Option<Self::Item> {
-		match self.lines.next() {
+	    match self.lines.next() {
 			Some(line) => match line {
 				Ok(line) => match parsers::parse_line(&line[..]) {
 					Ok( (_, m) ) => Some(Ok(m)),
-					Err(_) => Some(Err(ParseError::default().into()))
+					Err(e) => Some(Err(e.to_owned().into()))
 				},
 				Err(e) => Some(Err(e.into()))
-			}
-			None => None
+			},
+		    None => None
 		}
-	}
+    }
 }
 
 /// Mutable iterator for `Mounts`.
@@ -109,7 +116,7 @@ pub struct MountsIteratorMut<'a> {
 }
 
 impl<'a> std::iter::Iterator for MountsIteratorMut<'a> {
-	type Item = std::result::Result<Mount, std::boxed::Box<dyn std::error::Error>>;
+	type Item = std::result::Result<Mount, BoxError>;
 	
 	// Returns the next line in `/proc/mounts` as a [Mount].  See [Mounts::iter_mut()] for an example.
 	fn next(&mut self) -> std::option::Option<Self::Item> {
@@ -117,11 +124,11 @@ impl<'a> std::iter::Iterator for MountsIteratorMut<'a> {
 			Some(line) => match line {
 				Ok(line) => match parsers::parse_line(&line[..]) {
 					Ok( (_, m) ) => Some(Ok(m)),
-					Err(_) => Some(Err(ParseError::default().into()))
+					Err(e) => Some(Err(e.to_owned().into()))
 				},
 				Err(e) => Some(Err(e.into()))
-			}
-			None => None
+			},
+		    None => None
 		}
 	}
 }
@@ -146,35 +153,6 @@ impl<'a> Mounts {
 		self.into_iter()
 	}
 }
-
-/// The nom crate's error types do not cleanly implement std::error::Error.  This structure is a custom error type that implements Error.  In this very basic implementation of the Display trait we simply indicate that a parsing error has occurred without going into details.
-#[derive(Default)]
-pub struct ParseError;
-impl std::fmt::Display for ParseError {
-	/// Indicate that a parsing error occured.
-	/// # Examples
-	/// ```
-	/// # use nom_tutorial::ParseError;
-	/// assert_eq!(format!("{}", ParseError::default()), "A parsing error occurred.")
-	/// 
-	/// ```
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "A parsing error occurred.")
-	}
-}
-impl std::fmt::Debug for ParseError {
-	/// Indicate that a parsing error occurred.  In this very simple implementation, the debug output is the same as the display output (i.e. there is no additional information to add), so we can just call the `fmt()` method we implemented for `Display`.
-	/// # Examples
-	/// ```
-	/// # use nom_tutorial::ParseError;
-	/// assert_eq!(format!("{:?}", ParseError::default()), "A parsing error occurred.")
-	/// 
-	/// ```
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		<ParseError as std::fmt::Display>::fmt(self, f)
-	}
-}
-impl std::error::Error for ParseError { }
 
 // Encapsulate individual nom parsers in a private submodule.  The `pub(self)` keyword allows the inner method [parsers::parse_line()] to be called by code within this module, but not my users of our crate.
 pub(self) mod parsers {
@@ -366,7 +344,7 @@ pub(self) mod parsers {
 	}
 }
 
-/// Convenienve method equivalent to `Mounts::new()`.
+/// Convenience method equivalent to `Mounts::new()`.
 pub fn mounts() -> std::result::Result<Mounts, std::io::Error> {
 	Mounts::new()
 }

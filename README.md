@@ -170,65 +170,37 @@ Note that when the name of a crate contains hyphens we replace them with undersc
 
 ### Error Handling
 
-Unfortunately, many Rust tutorials handle potential errors by having you write `could_fail.unwrap()` or `could_fail.expect("Oh no!")`.  These statements cause your code to panic whenever an error occurs.  That's all well and good in a simple didactic example, but you should avoid writing production code that panics.  So as to set a _good_ example, let's edit `main.rs` to look like this:
+Unfortunately, many Rust tutorials handle potential errors by having you write `could_fail.unwrap()` or `could_fail.expect("Oh no!")`.  These statements cause your code to panic whenever an error occurs.  That's all well and good in a simple didactic example, but you should avoid writing production code that panics.  Instead we will introduce the syntax `could_fail?` known as the question mark `?` operator.  This requires a bit of plumbing.
 
 ```rust
-extern crate nom_example;
+// lib.rs
 
-fn main() -> std::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
+/// Type-erased errors.
+pub type BoxError = std::boxed::Box<dyn
+	std::error::Error   // must implement Error to satisfy ?
+	+ std::marker::Send // needed for threads
+	+ std::marker::Sync // needed for threads
+>;
+```
+```rust
+// main.rs
+
+extern crate nom_example;
+use nom_example::BoxError;
+
+fn main() -> std::result::Result<(), BoxError> {
+	// Inside the body of main we can now use the ? operator.
 	Ok(())
 }
+
 ```
 
-Our `main()` function now returns a `Result` in which the error type is a boxed trait.  The use of a boxed trait with the `dyn` keyword enables us to handle any error that implements the `std::error:Error` trait.  We even have the ability to reflect on the underlying type of the error during runtime (although that is beyond the scope of this tutorial).  When we write `main()` or any other function in this way it allows us to write `could_fail?` which behaves similarly to `could_fail.unwrap()` except that it returns an error up the call stack instead of panicking.  Refer to the [Rust Book section on error handling](https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html) to learn more about this design pattern.
 
-Let's edit `lib.rs` to contain the following:
+Our `main()` function now returns a `Result` in which the error type is something called `BoxError` that we defined in `lib.rs`.  At the end of `main()` we return `Ok(())` with an empty tuple to signify successful completion of the program.  When we write `main()` or any other function in this way it allows us to write `could_fail?` which behaves similarly to `could_fail.unwrap()` except that it returns an error up the call stack instead of panicking.  Refer to the [Rust Book section on error handling](https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html) if you are not familiar with this syntax.
 
-```rust
-#[derive(Default)]
-pub struct ParseError;
-impl std::fmt::Display for ParseError {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "A parsing error occurred.")
-	}
-}
-impl std::fmt::Debug for ParseError {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		<ParseError as std::fmt::Display>::fmt(self, f)
-	}
-}
-impl std::error::Error for ParseError { }
-```
-There's a lot to do here!  The problem we are trying to solve is that `nom::Err::Error` unfortunately does not implement `std::error::Error`, which means that propagating nom parser errors up the call stack is going to be complicated.  We will solve this by writing our own error type `ParseError` that _does_ implement `std::error::Error` and returning a `ParseError` whenever a nom parser error occurs.  The [Rust language documentation for the Error trait](https://doc.rust-lang.org/std/error/trait.Error.html) explains how to do this.
+What exactly is this mysterious `BoxError`?  It's something called a [trait object](https://doc.rust-lang.org/reference/types/trait-object.html) which, in this case, allows you to pass any error implementing the standard [`Error`](https://doc.rust-lang.org/std/error/trait.Error.html) trait up the call stack.  Note the inclusion of [`Send`](https://doc.rust-lang.org/std/marker/trait.Send.html) and [`Sync`](https://doc.rust-lang.org/std/marker/trait.Sync.html) to require that errors be thread-safe; although the usefulness of this may not be apparent now, it becomes very important whenever you interface with concurrent code or libraries.  Refer to [my error tutorial](https://benkay86.github.io/rust-error-tutorial.html) to learn more about this design pattern.
 
-```rust
-#[derive(Default)]
-pub struct ParseError;
-```
-Here we create a struct called ParseError.  It doesn't have any data members, and as we'll see in a moment it doesn't need to.
-
-```rust
-impl std::fmt::Display for ParseError {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "A parsing error occurred.")
-	}
-}
-```
-This [implements the Display trait](https://doc.rust-lang.org/std/fmt/trait.Display.html) on our ParseError, which allows it to be displayed with `println!({}", my_parse_error)` or similar.  As you can see our implementation is very simple -- it just displays, "A parsing error occurred," without any other useful information.  Not the best, but good enough for our example.
-
-```rust
-impl std::fmt::Debug for ParseError {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		<ParseError as std::fmt::Display>::fmt(self, f)
-	}
-}
-```
-The Error trait also requires that we implement the Debug trait, which is supposed to be similar to the Display trait but with more verbose information intended for consumption by a programmer debugging our program.  We used the Debug trait [earlier in this tutorial](#chap3) with the syntax `println!("{:?}", my_parse_error)`.  Our humble `ParseError` is so simple that the Debug output is identical to the Display output, so we simply call `fmt()` from the Display trait to render our Debug output.
-
-```rust
-impl std::error::Error for ParseError { }
-```
-Finally we've implemented all the methods/traits on `ParseError` that are required by the Error trait.  The above icing on the cake tells Rust that our `ParseError` type officially implements the Error trait.
+> Note: In previous versions of this tutorial I demonstrated how to write a custom error type for encapsulating nom errors.  [Since 5.1.1 nom errors implement `Error`](https://github.com/Geal/nom/pull/1043) and thus work out-of-the-box with the Rust's question mark `?` operator.  Writing custom error types is no longer needed.  Hooray!
 
 ### Storing the Mount Information
 
@@ -568,7 +540,7 @@ You can already verify the program works with `cargo test` but let's make things
 use std::io::BufRead;
 use std::io::Read;
 
-pub fn mounts() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
+pub fn mounts() -> Result<(), BoxError> {
 	let file = std::fs::File::open("/proc/mounts")?;
 	let buf_reader = std::io::BufReader::new(file);
 	for line in buf_reader.lines() {
@@ -587,7 +559,7 @@ pub fn mounts() -> Result<(), std::boxed::Box<dyn std::error::Error>> {
 ```rust
 extern crate nom_tutorial;
 
-fn main() -> std::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
+fn main() -> std::result::Result<(), BoxError> {
 	nom_tutorial::mounts()?
 	Ok(())
 }
@@ -609,7 +581,7 @@ From the standpoint of splitting our parser into a library and a binary, simply 
 ```rust
 extern crate nom_tutorial;
 
-fn main() -> std::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
+fn main() -> std::result::Result<(), BoxError> {
 	for mount in nom_tutorial::mounts()? {
 		println!("{}", mount?);
 	}
@@ -621,7 +593,7 @@ To see how powerful this is we can play around a little:
 ```rust 
 extern crate nom_tutorial;
 
-fn main() -> std::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
+fn main() -> std::result::Result<(), BoxError> {
 	for mount in nom_tutorial::mounts()? {
 		let mount = mount?; // Result --> Mount
 		println!("The device \"{}\" is mounted at \"{}\".", mount.device, mount.mount_point);
@@ -640,7 +612,7 @@ Unfortunately, there is a fair bit of boilerplate code needed to write a custom 
 ```rust
 extern crate nom_tutorial;
 
-fn main() -> std::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
+fn main() -> std::result::Result<(), BoxError> {
 	let mounts = nom_tutorial::mounts()?;
 	
 	// Do it once
