@@ -339,7 +339,7 @@ pub(self) mod parsers {
 
 We start by defining custom parsers `escaped_space` and `escaped_backslash` that recognize their escaped sequences, `040` and `\`, and return the un-escaped sequences ` ` and `\`, respectively.
 
-The `escaped_space` parser uses `nom::combinator::value`, which returns the specified value (in this case a space) when its child parser (in this case the familiar `tag` succeeds).  We could have written it this way:
+The `escaped_space` parser uses `nom::combinator::value`, which returns the specified value (in this case a space) when its child parser (in this case the familiar `tag`) succeeds.  We could have written it this way:
 
 ```rust
 fn escaped_space(i: &str) -> nom::IResult<&str, &str> {
