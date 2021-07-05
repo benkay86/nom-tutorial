@@ -372,7 +372,7 @@ escaped_transform(..., alt((escaped_backslash, escaped_space)))
 
 ### Return Types
 
-Up until now we've seen nom parsers return an `IResult<&str, &str>`, but nom parsers are just Rust functions and they can return anything.  If you've studies the example code closely you've noticed:
+Up until now we've seen nom parsers return an `IResult<&str, &str>`, but nom parsers are just Rust functions and they can return anything.  If you've studied the example code closely you've noticed:
 
 ```rust
 fn transform_escaped(i: &str) -> nom::IResult<&str, std::string::String>
