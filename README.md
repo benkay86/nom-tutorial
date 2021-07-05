@@ -1,6 +1,6 @@
 # Nom Tutorial
 
-[Nom](https://github.com/Geal/nom) is a wonderful parser combinators library written in Rust.  It can handle binary and text files.  Consider it where you would otherwise user a regular expression or Flex and Bison.  Nom has the advantage of Rusts's strong typing and memory safety, and it is often more performant than alternatives.  Learning nom is a worthwhile addition to your Rust toolbox.
+[Nom](https://github.com/Geal/nom) is a wonderful parser combinators library written in Rust.  It can handle binary and text files.  Consider it where you would otherwise use a regular expression or Flex and Bison.  Nom has the advantage of Rusts's strong typing and memory safety, and it is often more performant than alternatives.  Learning nom is a worthwhile addition to your Rust toolbox.
 
 ## Rationale
 
