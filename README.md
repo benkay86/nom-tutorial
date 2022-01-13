@@ -2,6 +2,8 @@
 
 [Nom](https://github.com/Geal/nom) is a wonderful parser combinators library written in Rust.  It can handle binary and text files.  Consider it where you would otherwise use a regular expression or Flex and Bison.  Nom has the advantage of Rusts's strong typing and memory safety, and it is often more performant than alternatives.  Learning nom is a worthwhile addition to your Rust toolbox.
 
+Nom has continued to evolve.  When I wrote this tutorial, nom version 5 was hot new stuff.  At my latest check nom is at version 7.1!  Unfortunately, due to time constraints, **this tutorial is not actively maintained.**  However, please feel free browse, as some of these older concepts may still be helpful for learning the latest and greatest version of nom.
+
 ## Rationale
 
 Nom's official documentation includes trivially simple examples (e.g. how to parse a hexadecimal RGB color code) and very complicated examples (e.g. how to parse json).  When I first learned nom I found a steep learning curve in between the simple and complex examples.  Furthermore, previous versions of nom, and most of the existing documentation, use macros.  From nom 5.0 onward macros are soft-deprecated in favor of functions.  This tutorial aims to fill the gap between simple and complex parsers by parsing the contents of `/proc/mounts`, and it demonstrates the use of functions instead of macros.
